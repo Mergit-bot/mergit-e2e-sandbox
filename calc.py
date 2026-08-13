@@ -14,3 +14,11 @@ if __name__ == "__main__":
 def total(numbers):
     """Sum a sequence; used to give the agent a clean PR to merge."""
     return sum(numbers)
+
+def largest(numbers):
+    """Return the largest number in a sequence."""
+    biggest = 0
+    for n in numbers:
+        if n > biggest:
+            biggest = n
+    return biggest
