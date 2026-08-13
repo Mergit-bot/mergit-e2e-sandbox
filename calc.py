@@ -14,3 +14,10 @@ if __name__ == "__main__":
 def total(numbers):
     """Sum a sequence; used to give the agent a clean PR to merge."""
     return sum(numbers)
+
+def product(numbers):
+    """Multiply a sequence; exists only to give the red-CI PR a change."""
+    out = 1
+    for n in numbers:
+        out *= n
+    return out
