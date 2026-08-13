@@ -2,7 +2,8 @@
 
 
 def average(numbers):
-    # BUG: crashes with ZeroDivisionError on an empty list
+    if len(numbers) == 0:
+        raise ValueError("average() of an empty sequence")
     return sum(numbers) / len(numbers)
 
 
