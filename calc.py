@@ -1,4 +1,4 @@
-"""Tiny calculator used by the Mergit end-to-end GitHub tests. (run 1786635846)"""
+"""Tiny calculator used by the Mergit end-to-end GitHub tests. (run 1786635973, rival variant)"""
 
 
 def average(numbers):
