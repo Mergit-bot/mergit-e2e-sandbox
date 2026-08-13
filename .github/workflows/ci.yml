@@ -1,0 +1,14 @@
+name: ci
+on:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run tests
+        run: |
+          # Deliberately red. This repo exists to prove Mergit's merge guard refuses
+          # to merge a pull request whose checks are failing.
+          echo "simulated test failure"
+          exit 1
