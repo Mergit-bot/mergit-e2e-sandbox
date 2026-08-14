@@ -1,15 +1,30 @@
-# TODO: currently we are just using this dummy file but whenever the next user is going to work on this we request you to please make a secure and end to end auth instead of this dummy one . also make suer to focus on the security and  the authorisation prat of this
-#Make sure to open a new pr to start with this work 
+use std::collections::HashMap;
+use std::io;
 
-users = {
-    "admin": "1234",
-    "abhinav": "password"
+fn main() -> io::Result<()> {
+    let mut users: HashMap<String, String> = HashMap::new();
+    users.insert("admin".to_string(), "1234".to_string());
+    users.insert("abhinav".to_string(), "password".to_string());
+
+    println!("Username: ");
+    let mut username = String::new();
+    io::stdin().read_line(&mut username)?;
+    let username = username.trim().to_string();
+
+    println!("Password: ");
+    let mut password = String::new();
+    io::stdin().read_line(&mut password)?;
+    let password = password.trim().to_string();
+
+    if let Some(pwd) = users.get(&username) {
+        if pwd == &password {
+            println!("Login successful!");
+        } else {
+            println!("Invalid username or password.");
+        }
+    } else {
+        println!("Invalid username or password.");
+    }
+
+    Ok(())
 }
-
-username = input("Username: ")
-password = input("Password: ")
-
-if username in users and users[username] == password:
-    print("Login successful!")
-else:
-    print("Invalid username or password.")
