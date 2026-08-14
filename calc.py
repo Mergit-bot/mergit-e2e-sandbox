@@ -17,7 +17,7 @@ def total(numbers):
 
 def largest(numbers):
     """Return the largest number in a sequence."""
-    biggest = 0
+    biggest = float('-inf')
     for n in numbers:
         if n > biggest:
             biggest = n
