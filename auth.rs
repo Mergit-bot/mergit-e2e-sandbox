@@ -1,26 +1,65 @@
+use bcrypt::{hash, verify};
+use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use std::collections::HashMap;
-use std::io;
+
+struct Auth {
+    users: HashMap<String, String>,
+}
+
+impl Auth {
+    fn new() -> Self {
+        Auth {
+            users: HashMap::new(),
+        }
+    }
+
+    fn register(&mut self, username: String, password: String) {
+        let hashed_password = hash(password, 12).unwrap();
+        self.users.insert(username, hashed_password);
+    }
+
+    fn login(&self, username: String, password: String) -> bool {
+        if let Some(hashed_password) = self.users.get(&username) {
+            verify(password, hashed_password).unwrap()
+        } else {
+            false
+        }
+    }
+
+    fn generate_token(&self, username: String) -> String {
+        let claims = Claims {
+            sub: username,
+            exp: 100000,
+        };
+        encode(&claims, &EncodingKey::from_secret("secret_key"), &Header::default()).unwrap()
+    }
+
+    fn verify_token(&self, token: String) -> bool {
+        let token_data = decode::<Claims>(&token, &DecodingKey::from_secret("secret_key"), &Validation::default()).unwrap();
+        token_data.claims.sub == self.users.keys().cloned().collect::<Vec<String>>().join(",")
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    exp: usize,
+}
 
 fn main() {
-    let mut users: HashMap<String, String> = HashMap::new();
-    users.insert("admin".to_string(), "1234".to_string());
-    users.insert("abhinav".to_string(), "password".to_string());
+    let mut auth = Auth::new();
+    auth.register("admin".to_string(), "1234".to_string());
+    auth.register("abhinav".to_string(), "password".to_string());
 
-    println!("Enter your username:");
-    let mut username = String::new();
-    io::stdin().read_line(&mut username).expect("Failed to read line");
-    let username = username.trim();
-
-    println!("Enter your password:");
-    let mut password = String::new();
-    io::stdin().read_line(&mut password).expect("Failed to read line");
-    let password = password.trim();
-
-    if let Some(stored_password) = users.get(username) {
-        if stored_password == password {
-            println!("Login successful!");
+    let username = "admin".to_string();
+    let password = "1234".to_string();
+    if auth.login(username.clone(), password) {
+        println!("Login successful!");
+        let token = auth.generate_token(username);
+        if auth.verify_token(token) {
+            println!("Token is valid.");
         } else {
-            println!("Invalid username or password.");
+            println!("Token is invalid.");
         }
     } else {
         println!("Invalid username or password.");
