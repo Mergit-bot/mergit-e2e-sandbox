@@ -17,7 +17,9 @@ def total(numbers):
 
 def largest(numbers):
     """Return the largest number in a sequence."""
-    biggest = 0
+    if not numbers:
+        raise ValueError("largest() arg is an empty sequence")
+    biggest = numbers[0]
     for n in numbers:
         if n > biggest:
             biggest = n
