@@ -17,8 +17,10 @@ def total(numbers):
 
 def largest(numbers):
     """Return the largest number in a sequence."""
-    biggest = 0
-    for n in numbers:
+    if not numbers:
+        return 0
+    biggest = numbers[0]
+    for n in numbers[1:]:
         if n > biggest:
             biggest = n
     return biggest
