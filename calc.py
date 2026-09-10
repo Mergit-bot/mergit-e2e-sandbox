@@ -12,8 +12,15 @@ if __name__ == "__main__":
     print(average([]))
 
 def total(numbers):
-    """Sum a sequence; used to give the agent a clean PR to merge."""
+    """Sum a sequence; used to give the agent a clean PR to merge. Now with test cases."""
     return sum(numbers)
+
+# Test cases to verify correctness
+assert total([1, 2, 3]) == 6
+assert total([]) == 0
+assert total([-1, 1]) == 0
+assert total([10]) == 10
+print("All tests passed.")
 
 def largest(numbers):
     """Return the largest number in a sequence."""
