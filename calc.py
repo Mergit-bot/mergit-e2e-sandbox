@@ -1,6 +1,5 @@
 """Tiny calculator used by the Mergit end-to-end GitHub tests. (run 1786635973)"""
 
-
 def average(numbers):
     if not numbers:
         return 0.0
@@ -13,8 +12,6 @@ def total(numbers):
 
 def largest(numbers):
     """Return the largest number in a sequence."""
-    if not numbers:
-        return 0
     biggest = numbers[0]
     for n in numbers:
         if n > biggest:
