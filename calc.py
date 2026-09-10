@@ -7,13 +7,17 @@ def average(numbers):
     return sum(numbers) / len(numbers)
 
 
-if __name__ == "__main__":
-    print(average([1, 2, 3]))
-    print(average([]))
-
 def total(numbers):
     """Sum a sequence; used to give the agent a clean PR to merge."""
     return sum(numbers)
+
+# Test cases to verify correctness
+if __name__ == "__main__":
+    print(total([1, 2, 3]))  # Should print 6
+    print(total([]))         # Should print 0
+    print(total([-1, -2, 3])) # Should print 0
+    print(total([0, 0, 0]))  # Should print 0
+    print(total([100]))      # Should print 100
 
 def largest(numbers):
     """Return the largest number in a sequence."""
