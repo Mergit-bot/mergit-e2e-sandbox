@@ -20,7 +20,7 @@ def largest(numbers):
     if not numbers:
         return 0
     biggest = numbers[0]
-    for n in numbers[1:]:
+    for n in numbers:
         if n > biggest:
             biggest = n
     return biggest
