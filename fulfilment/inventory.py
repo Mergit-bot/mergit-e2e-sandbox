@@ -86,8 +86,7 @@ class Warehouse:
         self._ttl = ttl_seconds
         self.events: list[tuple[str, str, int]] = []
 
-    # ── Stock ────────────────────────────────────────────────────────────────────
-
+    # [4mStock[0m
     def stock(self, sku: str) -> StockLevel:
         if sku not in self._levels:
             self._levels[sku] = StockLevel(sku=sku)
@@ -118,8 +117,7 @@ class Warehouse:
         """How many units a new order could take."""
         return self.stock(sku).sellable
 
-    # ── Reservations ─────────────────────────────────────────────────────────────
-
+    # [4mReservations[0m
     def reserve(self, sku: str, quantity: int, basket_id: str = "") -> Reservation:
         """Hold `quantity` units for a basket, or refuse if they are not there."""
         if quantity < 1:
@@ -153,12 +151,14 @@ class Warehouse:
             raise InventoryError(f"{reservation_id} was already fulfilled")
 
         giving_back = reservation.quantity if quantity is None else quantity
+        # Prevent releasing more than is reserved for this reservation
+        release_qty = min(giving_back, reservation.quantity)
         level = self.stock(reservation.sku)
-        level.reserved -= giving_back
-        reservation.quantity -= giving_back
+        level.reserved -= release_qty
+        reservation.quantity -= release_qty
         if reservation.quantity <= 0:
             reservation.released = True
-        self.events.append(("release", reservation.sku, giving_back))
+        self.events.append(("release", reservation.sku, release_qty))
         return reservation
 
     def fulfil(self, reservation_id: str) -> Reservation:
@@ -198,8 +198,7 @@ class Warehouse:
             self.events.append(("expire", reservation.sku, reservation.quantity))
         return expired
 
-    # ── Reporting helpers ────────────────────────────────────────────────────────
-
+    # [4mReporting helpers[0m
     def reservations_for(self, basket_id: str) -> list[Reservation]:
         return [r for r in self._reservations.values()
                 if r.basket_id == basket_id and not r.released]
