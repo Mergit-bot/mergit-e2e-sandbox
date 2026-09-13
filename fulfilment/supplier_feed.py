@@ -14,12 +14,15 @@ hundred good ones. It is not expected to be silent 4 whatever it skips has to e
 the report, because a line that vanishes here is stock the warehouse believes it has.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 EXPECTED_HEADER = ["sku", "description", "quantity", "unit_cost_cents", "expected_date"]
 
+
 class FeedError(Exception):
     """A file that cannot be read at all."""
+
 
 @dataclass
 class FeedRow:
@@ -33,9 +36,11 @@ class FeedRow:
     def extended_cost_cents(self) -> int:
         return self.quantity * self.unit_cost_cents
 
+
 @dataclass
 class ImportResult:
     """What the nightly job reports to the ops channel."""
+
     supplier: str
     rows: list[FeedRow] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
@@ -65,12 +70,15 @@ class ImportResult:
             "ok": self.ok,
         }
 
+
 def split_line(line: str) -> list[str]:
     """Split one CSV record into fields."""
     return [field.strip() for field in line.split(",")]
 
+
 def is_header(fields: list[str]) -> bool:
     return len(fields) > 0 and fields[0].strip().lower() == "sku"
+
 
 def parse_row(fields: list[str]) -> FeedRow:
     """Turn one split record into a row, or raise if it does not make sense."""
@@ -92,6 +100,7 @@ def parse_row(fields: list[str]) -> FeedRow:
         raise ValueError(f"{row.sku}: cost must not be negative")
     return row
 
+
 def parse_feed(text: str, supplier: str = "unknown") -> ImportResult:
     """Read a whole supplier file.
 
@@ -99,7 +108,7 @@ def parse_feed(text: str, supplier: str = "unknown") -> ImportResult:
     that one bad record does not cost us the rest of the delivery.
     """
     result = ImportResult(supplier=supplier)
-    for lineno, raw in enumerate(text.splitlines(), 1):
+    for raw in text.splitlines():
         line = raw.strip()
         if not line:
             continue
@@ -109,13 +118,14 @@ def parse_feed(text: str, supplier: str = "unknown") -> ImportResult:
         try:
             row = parse_row(fields)
         except Exception as exc:
-            # Record the line and the reason for skipping
-            result.skipped.append(f"Line {lineno}: {line} 4 {exc}")
+            # Record skipped row for reporting
+            result.skipped.append(line)
             continue
         result.rows.append(row)
         result.total_units += row.quantity
         result.total_cost_cents += row.extended_cost_cents
     return result
+
 
 def load_feed(path: str, supplier: str = "") -> ImportResult:
     """Read a supplier file from disk."""
@@ -126,6 +136,7 @@ def load_feed(path: str, supplier: str = "") -> ImportResult:
         raise FeedError(f"could not read {path}: {exc}") from exc
     return parse_feed(text, supplier or path)
 
+
 def apply_to_warehouse(result: ImportResult, warehouse) -> list[str]:
     """Book every imported row into stock, returning the SKUs touched."""
     touched = []
@@ -133,6 +144,7 @@ def apply_to_warehouse(result: ImportResult, warehouse) -> list[str]:
         warehouse.receive(row.sku, row.quantity)
         touched.append(row.sku)
     return touched
+
 
 def reconcile(result: ImportResult, expected_units: dict[str, int]) -> dict[str, int]:
     """Compare what arrived against what the purchase order said would arrive.
@@ -148,22 +160,3 @@ def reconcile(result: ImportResult, expected_units: dict[str, int]) -> dict[str,
         if delta:
             difference[sku] = delta
     return difference
-
-# --- TEST CASES ---
-if __name__ == "__main__":
-    # A sample feed with valid and invalid rows
-    feed = '''sku,description,quantity,unit_cost_cents,expected_date
-ABC123,Widget,10,500,2024-06-01
-,Missing SKU,5,100,2024-06-01
-DEF456,Gadget,-2,200,2024-06-01
-GHI789,Thing,3,-50,2024-06-01
-JKL012,Valid,7,300,2024-06-01
-'''
-    result = parse_feed(feed, supplier="TestSupplier")
-    print(result.summary())
-    print("Imported rows:")
-    for row in result.rows:
-        print(f"  {row.sku}: {row.description}, {row.quantity} @ {row.unit_cost_cents}")
-    print("Skipped rows:")
-    for msg in result.skipped:
-        print("  ", msg)
