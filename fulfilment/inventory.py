@@ -86,7 +86,7 @@ class Warehouse:
         self._ttl = ttl_seconds
         self.events: list[tuple[str, str, int]] = []
 
-    # ── Stock ────────────────────────────────────────────────────────────────────
+    # -- Stock ---------------------------------------------------------------
 
     def stock(self, sku: str) -> StockLevel:
         if sku not in self._levels:
@@ -118,7 +118,7 @@ class Warehouse:
         """How many units a new order could take."""
         return self.stock(sku).sellable
 
-    # ── Reservations ─────────────────────────────────────────────────────────────
+    # -- Reservations --------------------------------------------------------
 
     def reserve(self, sku: str, quantity: int, basket_id: str = "") -> Reservation:
         """Hold `quantity` units for a basket, or refuse if they are not there."""
@@ -151,8 +151,11 @@ class Warehouse:
             raise InventoryError(f"no such reservation: {reservation_id}")
         if reservation.fulfilled:
             raise InventoryError(f"{reservation_id} was already fulfilled")
-
-        giving_back = reservation.quantity if quantity is None else quantity
+        # PATCH: Prevent releasing more than reserved
+        max_releasable = reservation.quantity
+        giving_back = max_releasable if quantity is None else quantity
+        if giving_back > max_releasable:
+            raise InventoryError(f"Cannot release {giving_back} units; only {max_releasable} reserved.")
         level = self.stock(reservation.sku)
         level.reserved -= giving_back
         reservation.quantity -= giving_back
@@ -186,7 +189,7 @@ class Warehouse:
         """
         now = time.time() if now is None else now
         expired: list[str] = []
-        for reservation_id, reservation in self._reservations.items():
+        for reservation_id, reservation in list(self._reservations.items()):
             if not reservation.is_expired(now, self._ttl):
                 continue
             level = self.stock(reservation.sku)
@@ -198,7 +201,7 @@ class Warehouse:
             self.events.append(("expire", reservation.sku, reservation.quantity))
         return expired
 
-    # ── Reporting helpers ────────────────────────────────────────────────────────
+    # -- Reporting helpers ---------------------------------------------------
 
     def reservations_for(self, basket_id: str) -> list[Reservation]:
         return [r for r in self._reservations.values()
@@ -217,3 +220,17 @@ class Warehouse:
             }
             for sku, level in sorted(self._levels.items())
         }
+
+# Test for overselling bug
+if __name__ == "__main__":
+    wh = Warehouse()
+    wh.receive("WID-100", 100)
+    r = wh.reserve("WID-100", 10)
+    print("Before release:", wh.snapshot())
+    try:
+        wh.release(r.id, 25)  # Should raise
+    except InventoryError as e:
+        print("Caught expected error:", e)
+    print("After failed release:", wh.snapshot())
+    wh.release(r.id, 10)  # Should succeed
+    print("After correct release:", wh.snapshot())
