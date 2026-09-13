@@ -53,13 +53,16 @@ def percentile(values: list[float], pct: float) -> float:
     """The `pct`th percentile of `values`, nearest-rank.
 
     Used for pick times and courier latency on the dashboard, where the numbers that
-    matter are p50, p95 and p100 — the worst case is what the shift lead is judged on.
+    matter are p50, p95 and p100  the worst case is what the shift lead is judged on.
     """
     if not values:
         raise ReportError("cannot take a percentile of nothing")
     if not 0 <= pct <= 100:
         raise ReportError(f"percentile out of range: {pct}")
     ordered = sorted(values)
+    # Fix: if pct==100, use last element
+    if pct == 100:
+        return ordered[-1]
     index = int(pct / 100.0 * len(ordered))
     return ordered[index]
 
