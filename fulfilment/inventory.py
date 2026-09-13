@@ -86,8 +86,7 @@ class Warehouse:
         self._ttl = ttl_seconds
         self.events: list[tuple[str, str, int]] = []
 
-    # ── Stock ────────────────────────────────────────────────────────────────────
-
+    # Stock
     def stock(self, sku: str) -> StockLevel:
         if sku not in self._levels:
             self._levels[sku] = StockLevel(sku=sku)
@@ -118,8 +117,7 @@ class Warehouse:
         """How many units a new order could take."""
         return self.stock(sku).sellable
 
-    # ── Reservations ─────────────────────────────────────────────────────────────
-
+    # Reservations
     def reserve(self, sku: str, quantity: int, basket_id: str = "") -> Reservation:
         """Hold `quantity` units for a basket, or refuse if they are not there."""
         if quantity < 1:
@@ -153,7 +151,13 @@ class Warehouse:
             raise InventoryError(f"{reservation_id} was already fulfilled")
 
         giving_back = reservation.quantity if quantity is None else quantity
+        # PATCH: Prevent releasing more than reserved
+        if giving_back > reservation.quantity:
+            giving_back = reservation.quantity
         level = self.stock(reservation.sku)
+        # PATCH: Prevent reserved from going negative
+        if giving_back > level.reserved:
+            giving_back = level.reserved
         level.reserved -= giving_back
         reservation.quantity -= giving_back
         if reservation.quantity <= 0:
@@ -186,7 +190,7 @@ class Warehouse:
         """
         now = time.time() if now is None else now
         expired: list[str] = []
-        for reservation_id, reservation in self._reservations.items():
+        for reservation_id, reservation in list(self._reservations.items()):
             if not reservation.is_expired(now, self._ttl):
                 continue
             level = self.stock(reservation.sku)
@@ -198,8 +202,7 @@ class Warehouse:
             self.events.append(("expire", reservation.sku, reservation.quantity))
         return expired
 
-    # ── Reporting helpers ────────────────────────────────────────────────────────
-
+    # Reporting helpers
     def reservations_for(self, basket_id: str) -> list[Reservation]:
         return [r for r in self._reservations.values()
                 if r.basket_id == basket_id and not r.released]
@@ -217,3 +220,20 @@ class Warehouse:
             }
             for sku, level in sorted(self._levels.items())
         }
+
+# Test for overselling bug
+if __name__ == "__main__":
+    wh = Warehouse()
+    wh.receive("WID-100", 10)
+    r1 = wh.reserve("WID-100", 5)
+    r2 = wh.reserve("WID-100", 5)
+    # Try to release more than reserved (simulate buggy basket edit)
+    wh.release(r1.id, 10)  # Should only release 5
+    wh.release(r2.id, 10)  # Should only release 5
+    snap = wh.snapshot()
+    print("After over-release attempts:", snap)
+    # Reserved should never go negative
+    assert snap["WID-100"]["reserved"] == 0, f"reserved went negative: {snap['WID-100']['reserved']}"
+    # Sellable should be 10 (all released)
+    assert snap["WID-100"]["sellable"] == 10, f"sellable wrong: {snap['WID-100']['sellable']}"
+    print("Overselling bug fixed: reserved never goes negative.")
