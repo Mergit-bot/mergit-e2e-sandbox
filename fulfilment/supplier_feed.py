@@ -10,7 +10,7 @@ quotes and the occasional newline. Files are quoted per RFC 4180 when the suppli
 system bothers to do it.
 
 The import is expected to be tolerant: one bad row must not stop a delivery of four
-hundred good ones. It is not expected to be silent — whatever it skips has to end up in
+hundred good ones. It is not expected to be silent 4 whatever it skips has to end up in
 the report, because a line that vanishes here is stock the warehouse believes it has.
 """
 from __future__ import annotations
@@ -118,6 +118,8 @@ def parse_feed(text: str, supplier: str = "unknown") -> ImportResult:
         try:
             row = parse_row(fields)
         except Exception:
+            # FIX: record skipped row for reporting
+            result.skipped.append(raw)
             continue
         result.rows.append(row)
         result.total_units += row.quantity
