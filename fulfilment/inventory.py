@@ -86,7 +86,7 @@ class Warehouse:
         self._ttl = ttl_seconds
         self.events: list[tuple[str, str, int]] = []
 
-    # ── Stock ────────────────────────────────────────────────────────────────────
+    # Stock
 
     def stock(self, sku: str) -> StockLevel:
         if sku not in self._levels:
@@ -118,7 +118,7 @@ class Warehouse:
         """How many units a new order could take."""
         return self.stock(sku).sellable
 
-    # ── Reservations ─────────────────────────────────────────────────────────────
+    # Reservations
 
     def reserve(self, sku: str, quantity: int, basket_id: str = "") -> Reservation:
         """Hold `quantity` units for a basket, or refuse if they are not there."""
@@ -153,6 +153,9 @@ class Warehouse:
             raise InventoryError(f"{reservation_id} was already fulfilled")
 
         giving_back = reservation.quantity if quantity is None else quantity
+        # Fix: Prevent releasing more than currently reserved in this reservation
+        if giving_back > reservation.quantity:
+            giving_back = reservation.quantity
         level = self.stock(reservation.sku)
         level.reserved -= giving_back
         reservation.quantity -= giving_back
@@ -198,7 +201,7 @@ class Warehouse:
             self.events.append(("expire", reservation.sku, reservation.quantity))
         return expired
 
-    # ── Reporting helpers ────────────────────────────────────────────────────────
+    # Reporting helpers
 
     def reservations_for(self, basket_id: str) -> list[Reservation]:
         return [r for r in self._reservations.values()
