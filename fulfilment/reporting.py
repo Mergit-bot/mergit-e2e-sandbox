@@ -60,10 +60,11 @@ def percentile(values: list[float], pct: float) -> float:
     if not 0 <= pct <= 100:
         raise ReportError(f"percentile out of range: {pct}")
     ordered = sorted(values)
-    # Fix: if pct==100, use last element
+    # Fix: ensure index is within bounds
     if pct == 100:
-        return ordered[-1]
-    index = int(pct / 100.0 * len(ordered))
+        index = len(ordered) - 1
+    else:
+        index = int(pct / 100.0 * len(ordered))
     return ordered[index]
 
 
